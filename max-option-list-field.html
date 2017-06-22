@@ -1,0 +1,36 @@
+<link rel="import" href="../polymer/polymer-element.html">
+
+<dom-module id="max-option-list-field">
+  <template>
+    <style>
+      :host {
+        display: block;
+      }
+    </style>
+    <h2>Hello [[prop1]]!</h2>
+  </template>
+
+  <script>
+    /**
+     * `max-option-list-field`
+     * A polymer 2 element used as the option list control in max project
+     *
+     * @customElement
+     * @polymer
+     * @demo demo/index.html
+     */
+    class MaxOptionListField extends Polymer.Element {
+      static get is() { return 'max-option-list-field'; }
+      static get properties() {
+        return {
+          prop1: {
+            type: String,
+            value: 'max-option-list-field'
+          }
+        };
+      }
+    }
+
+    window.customElements.define(MaxOptionListField.is, MaxOptionListField);
+  </script>
+</dom-module>
