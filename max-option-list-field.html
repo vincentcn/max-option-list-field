@@ -1,8 +1,5 @@
 <link rel="import" href="../polymer/polymer-element.html">
-<link rel="import" href="../iron-dropdown/iron-dropdown.html" />
-<link rel="import" href="../iron-selector/iron-selector.html" />
-<link rel="import" href="../iron-a11y-keys/iron-a11y-keys.html" />
-
+<link rel="import" href="../iron-ajax/iron-ajax.html">
 
 <dom-module id="max-option-list-field">
   <template>
@@ -10,57 +7,33 @@
       :host {
         display: block;
       }
+
+      :host #container {
+        margin-top: 5px;
+        margin-bottom: 20px;
+        margin-left: 5px;
+        margin-right: 5px;
+      }
+
+      :host #label-for-select {
+        display: block;
+        margin-bottom: -10px;
+      }
+
     </style>
-    <iron-a11y-keys
-      id="keys"
-      keys="up down space enter tab esc"
-      target="[[_keyBindingsTarget]]"
-      on-keys-pressed="_handleKeyPress">
-    </iron-a11y-keys>
-    <div id="button" class$="btn dropdown-trigger {{_getDisabledClass(disabled)}} {{_getClass(buttonStyle)}}" on-tap="toggle" tabindex="0">
-      <div id="label" title="{{_displayValueSelected}}" class="dropdown-label">{{_displayValueSelected}}</div>
-      <template is="dom-if" if="{{_showClearButton(opened,selected,selectedValues,selectedValues.*)}}">
-        <iron-icon class="dropdown-icon" icon="px:close" on-tap="_clear"></iron-icon>
+    <div id="container">
+      <template is="dom-if" if="{{_isNotEmptyString(selectLabel)}}">
+        <label for="selectInput" id="label-for-select">[[selectLabel]]</label><br>
       </template>
-      <template is="dom-if" if="{{_showChevron(hideChevron,opened,selected,selectedValues,selectedValues.*)}}">
-        <iron-icon class="dropdown-icon" icon="px:chevron-down"></iron-icon>
+      <select id="selectInput" selectedItem="[[selectedItem]]">
+        <template is="dom-repeat" items={{_parsedOptions}} as="option">
+          <<option option-index="[[index]]" value="[[option.value]]">[[option.name]]</option>
+        </template>
+      </select>
+      <template is="dom-if" if="{{_isNotEmptyString(optionsRequestUrl)}}">
+        <iron-ajax url="[[optionsRequestUrl]]" handle-as="json" last-response="{{_optionsRequestResponse}}" auto></iron-ajax>
       </template>
     </div>
-    <iron-dropdown
-      id="dropdown"
-      class="dropdown"
-      auto-fit-on-attach
-      fit-into="{{_getElement(boundTarget)}}"
-      no-overlap
-      dynamic-align
-      opened="{{opened}}"
-      hover="{{hover}}"
-      no-cancel-on-outside-click="{{preventCloseOnOutsideClick}}"
-      allow-outside-scroll="{{allowOutsideScroll}}"
-      disabled$="{{disabled}}">
-      <div class="dropdown-content shadow-temporary">
-        <template is="dom-if" if="{{searchMode}}" value="{{searchTerm::input}}">
-          <div class="u-ph- u-pt-">
-            <input id="searchbox" class="text-input input--search" type="text" value="{{searchTerm::input}}">
-          </div>
-        </template>
-        <iron-selector
-          id="selector"
-          multi="{{multi}}"
-          selected={{selected}}
-          selected-values={{selectedValues}}
-          selected-items={{selectedItems}}
-          attr-for-selected="{{selectBy}}">
-          <template is="dom-repeat" id="dropdownItems" items="{{items}}" filter="{{_computeFilter(searchTerm)}}" delay="100" strip-whitespace>
-            <div class="dropdown-option" key="{{item.key}}" val="{{item.val}}" disabled$="{{item.disabled}}" on-mouseover="_hoverOn" on-mouseout="_hoverOff" on-tap="_updateCheckbox" title="{{item.val}}">
-              <template is="dom-if" if="{{multi}}">
-                <input id="option" class="checkbox" type="checkbox" on-tap="_updateCheckbox" disabled$="{{item.disabled}}"></input><span class="dropdown-option__item truncate">{{item.val}}</span></template>
-              <template is="dom-if" if="{{!multi}}"><span class="dropdown-option__item truncate">{{item.val}}</span></template>
-            </div>
-          </template>
-        </iron-selector>
-      </div>
-    </iron-dropdown>
   </template>
 
   <script>
@@ -76,652 +49,110 @@
       static get is() { return 'max-option-list-field'; }
       static get properties() {
         return {
+          /**
+           * The lable for the select options input.
+          */
+          selectLabel: {
+            type: String
+          },
 
           /**
-           * A flag which reflects if the dropdown trigger has been clicked or not.
-           */
-          opened: {
-            type: Boolean,
-            notify: true,
-            value: false
+           * Curret selected item.
+          */
+          selectedItem: {
+            type: String
           },
+
           /**
-           * A flag which reflects whether the dropdown is being hovered over.
-           */
-          hover: {
-            type: Boolean,
-            notify: true,
-            value: false
+           * The options. The format is
+           * [
+           *   { name : "option 1", value: "option1"},
+           *   { name : "option 2", value: "option2"}
+           * ]
+          */
+          selectOptions: {
+            type: Array,
+            value: [
+                      {
+                        "value" : "default",
+                        "name" : "default"
+                      }
+                    ]
           },
+
           /**
-           * Returns the currently focused item in the dropdown list.
-           */
-          focusedItem: {
-            observer: '_focusedItemChanged',
-            readOnly: true,
+           * The request url used to fetch options.
+           * If this field is specified, it will fetch the options via an ajax
+           * request automatically.
+          */
+          optionsRequestUrl: {
+            type: String
+          },
+
+          /**
+           * Specify which field in feed data will be used as the name of option.
+           * Defaults to "name".
+          */
+          nameFieldInOption: {
+            type: String,
+            value: "name"
+          },
+
+          /**
+           * Specify which field in feed data will be used as the value of option.
+           * Defaults to "value".
+          */
+          valueFieldInOption: {
+            type: String,
+            value: "value"
+          },
+
+          _parsedOptions: {
+            type: Array
+          },
+
+          _optionsRequestResponse: {
             type: Object
-          },
-          /**
-           * Whether or not to hide the chevron icon from the dropdown.
-           */
-          hideChevron: {
-            type: Boolean,
-            value: false
-          },
-          /**
-           * A CSS selector which specifies the bounding target the dropdown will be
-           * displayed within. Defaults to `window`.
-           */
-          boundTarget: {
-            type: String
-          },
-          /**
-           * Whether the dropdown will close when a user clicks
-           * outside of it. Set to true to prevent dropdown from closing.
-           */
-          preventCloseOnOutsideClick: {
-            type: Boolean,
-            value: false
-          },
-          /**
-           * The placeholder text to display in the dropdown. If the
-           * selected value(s) are cleared out, the displayValue will be
-           * replaced in the dropdown.
-           */
-          displayValue: {
-            type: String,
-            notify: true,
-            value: 'Select',
-            observer: '_displayValueChanged'
-          },
-          /**
-           * The text that is displayed in the label of the dropdown.
-           * Updated when the selections change.
-           */
-          _displayValueSelected: {
-            type: String
-          },
-          /**
-           * An array that contains the list of items which show up in the dropdown.
-           * Each item can either be a simple string, or an object consisting of:
-           * * 'key' - a unique identifier (number or string)
-           * * 'val' - the actual text that is displayed
-           * * 'disabled' - whether the item should be disabled for selection (optional)
-           * * 'selected' - whether the item should be selected at instantiation (optional)
-           */
-          items: {
-            type: Array,
-            notify: true,
-            value: function () {
-              return [];
-            },
-            observer: '_itemsChanged'
-          },
-          /**
-           * If set to true, multiple values can be selected in the dropdown.
-           * Selected values are reflected in the `selectedValues` property.
-           * If set to false, a single selected value is reflected in `selected`.
-           */
-          multi: {
-            type: Boolean,
-            value: false
-          },
-          /**
-           * Which property of each dropdown item will be used to get/set
-           * the selected items - should be one of "key" or "val".
-           */
-          selectBy: {
-            type: String,
-            value: 'key',
-            observer: '_updateSelection'
-          },
-          /**
-           * Gets or sets the selected item when `multi` is false.
-           * Will either be a single key or value based on `selectBy`.
-           */
-          selected: {
-            type: String,
-            value: null,
-            notify: true
-          },
-          /**
-           * Gets or sets the selected items when `multi` is true.
-           * Will either be an array of keys or values based on `selectBy`.
-           */
-          selectedValues: {
-            type: Array,
-            value: function() {
-              return [];
-            },
-            notify: true
-          },
-          /**
-           * A read-only array of the selected `<div>` elements in the dropdown.
-           */
-          selectedItems: {
-            type: Array,
-            value: function() {
-              return [];
-            },
-            readOnly: true
-          },
-          /**
-           * By default, the dropdown will constrain scrolling on the page to
-           * itself when opened. Set to true in order to allow scrolling of
-           * the page while the dropdown is open.
-           */
-          allowOutsideScroll: {
-            type: Boolean,
-            value: false
-          },
-          /**
-           * Style for the button that invokes the dropdown.
-           * One of 'default','bare','bare--primary', or 'tertiary'.
-           */
-          buttonStyle: {
-            type: String,
-            value: 'default'
-          },
-          /**
-           * Whether the dropdown should be disabled and non-interactive.
-           */
-          disabled: {
-            type: Boolean,
-            value: false
-          },
-          /**
-           * If true, the dropdown will include a search box, whereby the
-           * dropdown items can be filtered with a search term.
-           */
-          searchMode: {
-            type: Boolean,
-            value: false
-          },
-          /**
-           * The value of the search box, used for filtering the dropdown
-           * items when searchMode is true.
-           */
-          searchTerm: {
-            type: String,
-            value: ''
-          },
-          /**
-           * What to sort the dropdown items by - one of "key" or "val".
-           * By default, the items will be displayed in the order they are
-           * passed into the component.
-           */
-          sortMode: {
-            type: String
-          },
-          /**
-           * If set to true, the display-value will always show up in the
-           * invoking button of the dropdown. Useful in cases like the
-           * px-data-table, where "Show/Hide Columns" should always appear.
-           */
-          hideSelected: {
-            type: Boolean,
-            value: false
-          },
-          /**
-           * Binding target for iron-a11y-keys
-           */
-          _keyBindingsTarget: {
-            type: Object,
-            value: function () {
-              return this;
-            }
-          },
-          /**
-           * The currently "focused" option in the dropdown list.
-           * Used for handling of keyboard events.
-           */
-          _focusedOption: {
-            type: HTMLElement
-          },
-          /**
-           * Used to capture if the user is using the keyboard to interact with the dropdown.
-           * Used to disable all mouse events.
-           */
-          _keyboardBeingUsed: {
-            type: Boolean,
-            value: false
           }
-        };
-      }
-
-      static get listeners() {
-        return {
-          'iron-activate' : '_ignoreDisabled',
-          'iron-select' : '_handleSelection',
-          'iron-deselect' : '_handleDeselection'
         };
       }
 
       static get observers() {
         return [
-          '_initSort(sortMode, items)'
-        ];
+            '_parseRequestedOptions(_optionsRequestResponse, nameFieldInOption, valueFieldInOption)',
+            '_parseConfiguredOptions(selectOptions, nameFieldInOption, valueFieldInOption)'
+        ]
       }
 
-
-      /**
-       * Opens the dropdown when the button is pressed.
-       */
-      toggle() {
-        this.$.dropdown.toggle();
-        this.$.dropdown.style.minWidth = window.getComputedStyle(this.$.button).width;
+      _isNotEmptyString(value) {
+        return (typeof value === "string") && (value.trim().length > 0);
       }
 
-      /**
-       * Clears all of the selections when the clear button is pressed.
-       */
-      _clear(evt) {
-        evt.stopPropagation();
-        this.set('selected', null);
-        this.set('selectedValues', []);
-        if(this.multi) {
-          Polymer.dom(this.$.dropdown).querySelectorAll('input#option:checked').forEach(function(item) {
-            item.checked = false;
+      _parseConfiguredOptions(options, nameField, valueField) {
+        this._parseOptions(options, nameField, valueField);
+      }
+
+      _parseRequestedOptions(options, nameField, valueField) {
+        this._parseOptions(options, nameField, valueField);
+      }
+
+      _parseOptions(options, nameField, valueField) {
+        if (options && nameField && valueField) {
+          var parsedOptions = [];
+
+          options.forEach(function(option) {
+            var name = option[nameField];
+            var value = option[valueField];
+            if (name && value) {
+              parsedOptions.push({"name": name, "value": value});
+            }
           });
-        }
-        this.$.dropdown.close();
-      }
 
-      /**
-       * Forces the width of the dropdown to be at least as wide as the button.
-       */
-      attached() {
-        this.$.dropdown.style.minWidth = window.getComputedStyle(this.$.button).width;
-        this._updateSelection();
-      }
-
-      /**
-       * Calculates the class for a disabled dropdown.
-       */
-      _getDisabledClass() {
-        return this.disabled ? 'btn--disabled' : '';
-      }
-
-      /**
-       * Calculates the class for a bare dropdown.
-       */
-      _getClass() {
-        if(this.buttonStyle === 'bare') return 'btn--bare u-pr0';
-        else if(this.buttonStyle === 'bare--primary') return 'btn--bare--primary u-pr0';
-        else if(this.buttonStyle === 'tertiary') return 'btn--tertiary';
-        else return ''
-      }
-
-      /**
-       * Searches the DOM for the `boundTarget` element.
-       */
-      _getElement(target) {
-        return Polymer.dom(document).querySelector(target);
-      }
-
-      /**
-       * When `displayValue` update `_displayValueSelected`
-       */
-      _displayValueChanged(){
-        this._displayValueSelected = this.displayValue;
-      }
-
-      /**
-       * Any time that `items` changes, this method will convert an array
-       * of simple strings to an array of objects.
-       */
-      _itemsChanged(items) {
-        if(items[0] && typeof items[0] === 'string') {
-          var computedItems = [];
-          items.forEach(function(item, idx) {
-            computedItems.push({"key":idx, "val":item});
-          })
-          this.items = computedItems;
-        }
-        this._updateSelection();
-      }
-
-      /**
-       * Iterates over the `items` array and adds items with the
-       * `selected` property to the `selectedValues` array. Overridden
-       * by any existing selections in `selectedValues`.
-       */
-      _updateSelection() {
-        if(this.multi && this.items && this.items.length > 0 && this.selectedValues && this.selectedValues.length === 0) {
-          var length = this.items.length,
-              selected = [],
-              i;
-          for(i=0; i<length; i++) {
-            if(this.items[i].selected !== undefined && this.items[i].selected.toString() === 'true') {
-              selected.push(this.items[i][this.selectBy]);
-            }
-          }
-          this.set('selectedValues', selected);
-          if(!this.hideSelected && this.selectedValues.length > 0) {
-            this._displayValueSelected = this.selectedValues.length + ' selected';
-          }
-          else {
-            this._displayValueSelected = this.displayValue;
-          }
-          if(this.$.selector.selectedItems) {
-            var length = this.$.selector.selectedItems.length;
-            for(i=0; i<length; i++) {
-              Polymer.dom(this.$.selector.selectedItems[i]).querySelector('input').checked = true;
-            }
-          }
-        }
-        var node;
-        for(node in this.$.selector.childNodes) {
-          node = this.$.selector.childNodes[node];
-          if(node.tagName === "DIV") {
-            var found = false;
-            for(value in this.selectedValues) {
-              value = this.selectedValues[value];
-              if(value === node[this.selectBy]) {
-                found = true;
-              }
-            }
-            if(found) {
-              Polymer.dom(node).querySelector('input').checked = true;
-            }
+          if (parsedOptions.length > 0) {
+            this._parsedOptions = parsedOptions;
           }
         }
       }
-
-      /**
-       * When iron-activate is fired, this method checks whether the item is disabled.
-       * If so, it cancels the event so that iron-select is not called.
-       */
-      _ignoreDisabled(evt) {
-        if(evt.detail.item.hasAttribute('disabled')) {
-          evt.preventDefault();
-        }
-      }
-
-      /**
-       * Handles the selection event from iron-selector to update
-       * the label displayed inside the dropdown.
-       */
-      _handleSelection(evt) {
-        if(this.multi && this.selectedValues.length === 1 && !this.hideSelected) {
-          this._displayValueSelected = this.$.selector.selectedItems[0].innerText.trim();
-        }
-        else if(this.multi && this.selectedValues.length > 1 && !this.hideSelected) {
-          this._displayValueSelected = this.selectedValues.length + ' selected';
-        }
-        else if(!this.hideSelected) {
-          this._displayValueSelected = this.$.selector.selectedItem ? this.$.selector.selectedItem.val : this.displayValue;
-          this.$.dropdown.close();
-        }
-        this.$.dropdown.notifyResize();
-        /**
-         * Event fired when any given element is selected or deselected in the list.
-         * `evt.detail` contains:
-         * ```
-         * { val: "text of the changed element",
-         *   key: "key of the changed element",
-         *   selected: true/false }
-         * ```
-         * @event px-dropdown-selection-changed
-         */
-        this.fire('px-dropdown-selection-changed', {
-          val: evt.detail.item.val,
-          key: evt.detail.item.key,
-          selected: true
-        });
-      }
-
-      /**
-       * Handles the de-selection event from iron-selector to update
-       * the label displayed inside the dropdown.
-       */
-      _handleDeselection(evt) {
-        if(this.multi && this.selectedValues.length === 1 && !this.hideSelected) {
-          this._displayValueSelected = this.$.selector.selectedItems[0].innerText.trim();
-        }
-        else if(this.multi && this.selectedValues.length > 1 && !this.hideSelected) {
-          this._displayValueSelected = this.selectedValues.length + ' selected';
-        }
-        else {
-          this._displayValueSelected = this.displayValue;
-        }
-        this.$.dropdown.notifyResize();
-        /**
-         * Event fired when any given element is selected or deselected in the list.
-         * `evt.detail` contains:
-         * ```
-         * { val: "text of the changed element",
-         *   key: "key of the changed element",
-         *   selected: true/false }
-         * ```
-         * @event px-dropdown-selection-changed
-         */
-        this.fire('px-dropdown-selection-changed', {
-          val: evt.detail.item.val,
-          key: evt.detail.item.key,
-          selected: false
-        });
-      }
-
-      /**
-       * Filter function used by the dom-repeat inside the iron-selector,
-       * based on the searchTerm entered in the search box.
-       */
-      _computeFilter(searchTerm) {
-        if (!this.searchMode || !searchTerm.length) {
-          return null;
-        } else {
-          searchTerm = searchTerm.toLowerCase();
-          return function (entry) {
-            return entry.val.toString().toLowerCase().indexOf(searchTerm) != -1 || entry.key.toString().toLowerCase().indexOf(searchTerm) != -1;
-          };
-        }
-      }
-
-      /**
-       * Determines whether to display the clear button inside the dropdown.
-       */
-      _showClearButton(opened, selected, selectedValues) {
-        return (opened && (typeof selected === 'string' || typeof selected === 'number' || selectedValues.length > 0));
-      }
-
-      /**
-       * Determines whether to display the chevron button inside the dropdown.
-       */
-      _showChevron(hideChevron, opened, selected, selectedValues) {
-        return !hideChevron && (!opened || (opened && !selected && selectedValues.length === 0));
-      }
-
-      /**
-       * Initializes the sort function for the dom-repeat inside of iron-selector.
-       */
-      _initSort() {
-        this.$.dropdownItems.sort = '_computeSort';
-        this.$.dropdownItems.render();
-      }
-
-      /**
-       * Event handler for mouse move event. We enable mouse events when user moves the mouse.
-       * Mouse events are disabled when user uses the keyboard to interact with the dropdown.
-       * @private
-       */
-      _bindMouse() {
-        this._keyboardBeingUsed = false;
-        this.$.dropdown.classList.remove('no-mouse-event');
-        this.removeEventListener('mousemove', this._bindMouse);
-      }
-
-      /**
-       * The sort function used by the dom-repeat inside of iron-selector to
-       * sort the items by either 'key' or 'val' based on `sortMode`.
-       */
-      _computeSort(a, b) {
-        var sortValue = 0;
-        if (!this.sortMode) {
-          return -1;
-        }
-
-        if (this.sortMode && sortValue === 0) {
-          if (this.sortMode === 'key') {
-            sortValue = a.key - b.key;
-          }
-          if (this.sortMode === 'val') {
-            var nameA = a.val.toUpperCase(),
-              nameB = b.val.toUpperCase();
-
-            if (nameA < nameB) {
-              sortValue--;
-            }
-            if (nameA > nameB) {
-              sortValue++;
-            }
-          }
-        }
-
-        return sortValue;
-      }
-
-      /**
-       * Adds or removes the focused class for keyboard navigation.
-       */
-      _setFocusedOption(newOption, oldOption) {
-        this._focusedOption = newOption;
-        if(newOption) {
-          this.toggleClass('focused',true,newOption);
-        }
-        if(oldOption) {
-          this.toggleClass('focused',false,oldOption);
-        }
-      }
-
-      /**
-       * Keypress event handler for iron-a11y-keys.
-       */
-      _handleKeyPress(event) {
-        this._keyboardBeingUsed = true;
-        var keyPressed = event.detail.combo,
-            options = this.$.selector.getEffectiveChildren().filter(function(node) {
-              return (node.nodeType === Node.ELEMENT_NODE && node.nodeName === 'DIV'
-                      && !node.hasAttribute('disabled'));
-            }),
-            focused = options.indexOf(this._focusedOption),
-            searchFocused = this.searchMode && Polymer.dom(this.$.dropdown).querySelector(':focus') === Polymer.dom(this.$.dropdown).querySelector('#searchbox');
-        switch (keyPressed) {
-          case 'space':
-          case 'enter':
-            // If closed, open it
-            if(!this.opened) {
-              this.toggle();
-            }
-            // If opened, select currently focused item
-            else if(focused !== -1) {
-              options[focused].click();
-            }
-            event.detail.keyboardEvent.preventDefault();
-            break;
-          case 'esc':
-            this.$.button.focus();
-            this.$.dropdown.close();
-            break;
-          case 'tab':
-            // Close dropdown and (default behavior) move to next item
-            if(this.opened) {
-              this.$.dropdown.close();
-            }
-            break;
-          case 'down':
-            // If closed, open it
-            if(!this.opened) {
-              this.toggle();
-            }
-            // If something is focused, move to the next sibling
-            if(focused > -1 && focused < options.length - 1) {
-              this._setFocusedOption(options[focused + 1], options[focused]);
-              this.$.dropdown.querySelector('.dropdown-content').scrollTop += options[focused+1].offsetHeight;
-            }
-            // If last element is focused, do nothing
-            else if (focused === options.length - 1) {
-              break;
-            }
-            // If nothing is focused and search-mode is true, move to the search box
-            else if (focused === -1 && this.searchMode && !searchFocused) {
-              Polymer.dom(this.$.dropdown).querySelector('#searchbox').focus();
-            }
-            // If searchbox is focused, move to the first option
-            else if (searchFocused) {
-              Polymer.dom(this.$.dropdown).querySelector('#searchbox').blur();
-              this.$.button.focus();
-              this._setFocusedOption(options[0]);
-            }
-            // Else focus the first item in the list
-            else {
-              this._setFocusedOption(options[0]);
-            }
-            event.detail.keyboardEvent.preventDefault();
-            break;
-          case 'up':
-            // If closed, open it
-            if(!this.opened) {
-              this.toggle();
-            }
-            // If something is focused, move to the previous sibling
-            if(focused > 0) {
-              this._setFocusedOption(options[focused - 1], options[focused]);
-              Polymer.dom(this.$.dropdown).querySelector('.dropdown-content').scrollTop -= options[focused].offsetHeight;
-            }
-            // If the first item is focused and search-mode is true, move to the search box
-            else if (focused === 0 && this.searchMode && !searchFocused) {
-              Polymer.dom(this.$.dropdown).querySelector('#searchbox').focus();
-              this._setFocusedOption(null, options[0]);
-            }
-            // Else focus the last item in the list
-            else if (focused === -1 && !searchFocused) {
-              this._setFocusedOption(options[options.length - 1]);
-            }
-            event.detail.keyboardEvent.preventDefault();
-            break;
-        }
-      }
-
-      /**
-       * Event handler when the mouse hovers over a dropdown list item.
-       */
-      _hoverOn(event) {
-        if (!this._keyboardBeingUsed) {
-          var currHighlightedItem = this.querySelector('.dropdown-option.focused');
-          if (currHighlightedItem) {
-            this.toggleClass('focused',false,currHighlightedItem);
-          }
-          this.toggleClass('focused',true,Polymer.dom(event).localTarget);
-        }
-      }
-
-      /**
-       * Event handler when the mouse hovers out of a dropdown list item.
-       */
-      _hoverOff(event) {
-        this.toggleClass('focused',false,Polymer.dom(event).localTarget);
-      }
-
-      /**
-       * Event handler to keep the div's `iron-selected` class and the checkbox's
-       * `checked` properties in sync.
-       */
-      _updateCheckbox(event) {
-        var evt = Polymer.dom(event);
-        if(this.multi && !evt.rootTarget.hasAttribute('disabled')) {
-          if(evt.rootTarget.classList.contains('checkbox')) {
-            evt.rootTarget.checked = !evt.rootTarget.checked;
-          }
-          else if(evt.rootTarget.classList.contains('iron-selected')) {
-            Polymer.dom(evt.rootTarget).querySelector('input').checked = false;
-          }
-          else {
-            Polymer.dom(evt.rootTarget).querySelector('input').checked = true;
-          }
-        }
-      }
-
     }
 
     window.customElements.define(MaxOptionListField.is, MaxOptionListField);
