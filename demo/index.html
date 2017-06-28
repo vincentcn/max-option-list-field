@@ -14,16 +14,49 @@
 
     <custom-style>
       <style is="custom-style" include="demo-pages-shared-styles">
+        html {
+          --form-input-width: 300px;
+        }
+
+        #demo-container {
+          display: block;
+          margin:0 auto;
+          width: 560px;
+          box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12), 0 3px 1px -2px rgba(0, 0, 0, 0.2);;
+          margin-bottom: 40px;
+          margin-top: 10px;
+          padding: 20px;
+        }
       </style>
     </custom-style>
   </head>
   <body>
+    <div id="demo-container">
+      <h3>Option list with options from configuration</h3>
+      <max-option-list-field select-label="You phone OS" select-options='[{"name":"iPhone","value":"1"},{"name":"Android","value":"2"},{"value":"3","name":"Blackberry"},{"value":"4","name":"Windows Phone"},{"value":"5","name":"Flip Phone"}]'>
+      </max-option-list-field>
+    </div>
+    <div id="demo-container">
+      <h3>Option list with options from configuration with customized fields</h3>
+      <max-option-list-field select-label="Programming Language" name-field-in-option="language" value-field-in-option="key" select-options='[{"language":"java","key":"1"},{"language":"Ruby","key":"2"},{"key":"3","language":"Javascript"},{"key":"4","language":"Groovy"}]'>
+      </max-option-list-field>
+    </div>
+    <div id="demo-container">
+      <h3>Option list with options from http request</h3>
+      <max-option-list-field select-label="Language"  options-request-url="./data/sample-options.json">
+      </max-option-list-field>
+    </div>
+    <div id="demo-container">
+      <h3>Option list with options from http request and customized fields</h3>
+      <max-option-list-field select-label="Number" name-field-in-option="result" value-field-in-option="key" options-request-url="./data/sample-options-with-customized-name.json">
+      </max-option-list-field>
+    </div>
+
     <div class="vertical-section-container centered">
       <h3>Basic max-option-list-field demo</h3>
       <demo-snippet>
         <template>
           <max-option-list-field>
-<px-dropdown-content extend-dropdown='true' extend-dropdown-by='25' max-cont-character-width='10' items='[{"key":"1","val":"iPhone"},{"key":"2","val":"Android"},{"key":"3","val":"Blackberry"},{"key":"4","val":"Windows Phone"},{"key":"5","val":"Flip Phone","disabled":true}]'></px-dropdown-content>
           </max-option-list-field>
         </template>
       </demo-snippet>
