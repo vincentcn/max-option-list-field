@@ -16,6 +16,7 @@
       <style is="custom-style" include="demo-pages-shared-styles">
         html {
           --form-input-width: 300px;
+          --form-input-height: 2em;
         }
 
         #demo-container {
@@ -31,34 +32,32 @@
     </custom-style>
   </head>
   <body>
-    <div id="demo-container">
-      <h3>Option list with options from configuration</h3>
-      <max-option-list-field select-label="You phone OS" select-options='[{"name":"iPhone","value":"1"},{"name":"Android","value":"2"},{"value":"3","name":"Blackberry"},{"value":"4","name":"Windows Phone"},{"value":"5","name":"Flip Phone"}]'>
-      </max-option-list-field>
-    </div>
-    <div id="demo-container">
-      <h3>Option list with options from configuration with customized fields</h3>
-      <max-option-list-field select-label="Programming Language" name-field-in-option="language" value-field-in-option="key" select-options='[{"language":"java","key":"1"},{"language":"Ruby","key":"2"},{"key":"3","language":"Javascript"},{"key":"4","language":"Groovy"}]'>
-      </max-option-list-field>
-    </div>
-    <div id="demo-container">
-      <h3>Option list with options from http request</h3>
-      <max-option-list-field select-label="Language"  options-request-url="./data/sample-options.json">
-      </max-option-list-field>
-    </div>
-    <div id="demo-container">
-      <h3>Option list with options from http request and customized fields</h3>
-      <max-option-list-field select-label="Number" name-field-in-option="result" value-field-in-option="key" options-request-url="./data/sample-options-with-customized-name.json">
-      </max-option-list-field>
-    </div>
-
     <div class="vertical-section-container centered">
-      <h3>Basic max-option-list-field demo</h3>
+      <h3>1. Option list (feeds from configuration)</h3>
       <demo-snippet>
         <template>
-          <max-option-list-field>
+          <max-option-list-field select-label="You phone OS" select-options='[{"name":"iPhone","value":"1"},{"name":"Android","value":"2"},{"value":"3","name":"Blackberry"},{"value":"4","name":"Windows Phone"},{"value":"5","name":"Flip Phone"}]'>
           </max-option-list-field>
         </template>
+      </demo-snippet>
+      <h3>2. Option list (feeds from configuration, customized fields)</h3>
+      <demo-snippet>
+        <template>
+          <max-option-list-field select-label="Programming Language" name-field-in-option="language" value-field-in-option="key" select-options='[{"language":"java","key":"1"},{"language":"Ruby","key":"2"},{"key":"3","language":"Javascript"},{"key":"4","language":"Groovy"}]'>
+          </max-option-list-field>
+        </template>
+      </demo-snippet>
+      <h3>3. Option list (feeds from http request)</h3>
+      <demo-snippet>
+        <template>
+          <max-option-list-field select-label="Language"  options-request-url="./data/sample-options.json">
+          </max-option-list-field>
+        </template>
+      </demo-snippet>
+      <h3>4. Option list (feeds from http request, customized fields)</h3>
+      <demo-snippet>
+        <max-option-list-field select-label="Number" name-field-in-option="result" value-field-in-option="key" options-request-url="./data/sample-options-with-customized-name.json">
+        </max-option-list-field>
       </demo-snippet>
     </div>
   </body>
