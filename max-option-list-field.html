@@ -20,14 +20,58 @@
         margin-bottom: -10px;
       }
 
+      :host select {
+        max-width: 28.26667rem;
+        height: var(--form-input-height);
+        width: var(--form-input-width);
+        padding: 0 .66667rem;
+        box-shadow: inset 0 0 0 1px #d8e0e5;
+        background-color: #e2e8ed;
+        color: #000;
+        line-height: 1;
+        margin: 0;
+        border: 1px solid #96a8b2;
+        font: inherit;
+        outline: 0;
+        appearance:none;
+        -moz-appearance:none;
+        -webkit-appearance:none;
+        -webkit-rtl-ordering: logical;
+        user-select: text;
+        cursor: auto;
+        text-rendering: auto;
+        letter-spacing: normal;
+        word-spacing: normal;
+        text-transform: none;
+        text-indent: 0px;
+        text-shadow: none;
+        display: inline-block;
+        text-align: start;
+        text-size-adjust: 100%;
+        border-radius: unset;
+        background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20viewBox%3D%220%200%20658%201024%22%3E%3Cpath%20fill%3D%22%232c404c%22%20d%3D%22M614.286%20420.571q0%207.429-5.714%2013.143l-266.286%20266.286q-5.714%205.714-13.143%205.714t-13.143-5.714l-266.286-266.286q-5.714-5.714-5.714-13.143t5.714-13.143l28.571-28.571q5.714-5.714%2013.143-5.714t13.143%205.714l224.571%20224.571%20224.571-224.571q5.714-5.714%2013.143-5.714t13.143%205.714l28.571%2028.571q5.714%205.714%205.714%2013.143z%22%2F%3E%3C%2Fsvg%3E');
+        background-repeat: no-repeat;
+        background-position: calc(100% - .66667rem) 37.5%
+      }
+
+      :host select option {
+        border-radius: unset;
+        box-shadow: inset 0 0 0 1px #d8e0e5;
+        background-color: #e2e8ed;
+      }
+
+      select::-ms-expand {
+        display: none;
+      }
+
     </style>
     <div id="container">
       <template is="dom-if" if="{{_isNotEmptyString(selectLabel)}}">
-        <label for="selectInput" id="label-for-select">[[selectLabel]]</label><br>
+        <label for="select-input" id="label-for-select">[[selectLabel]]</label><br>
       </template>
-      <select id="selectInput" selectedItem="[[selectedItem]]">
+      <select id="select-input" stype="background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20viewBox%3D%220%200%20658%201024%22%3E%3Cpath%20fill%3D%22%232c404c%22%20d%3D%22M614.286%20420.571q0%207.429-5.714%2013.143l-266.286%20266.286q-5.714%205.714-13.143%205.714t-13.143-5.714l-266.286-266.286q-5.714-5.714-5.714-13.143t5.714-13.143l28.571-28.571q5.714-5.714%2013.143-5.714t13.143%205.714l224.571%20224.571%20224.571-224.571q5.714-5.714%2013.143-5.714t13.143%205.714l28.571%2028.571q5.714%205.714%205.714%2013.143z%22%2F%3E%3C%2Fsvg%3E');"  selectedItem="[[selectedItem]]">
         <template is="dom-repeat" items={{_parsedOptions}} as="option">
-          <<option option-index="[[index]]" value="[[option.value]]">[[option.name]]</option>
+          <option option-index="[[index]]" value="[[option.value]]">[[option.name]]</option>
         </template>
       </select>
       <template is="dom-if" if="{{_isNotEmptyString(optionsRequestUrl)}}">
